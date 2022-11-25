@@ -175,33 +175,94 @@ $ sudo cat /var/log/httpd/access_log
 
 🌞 **Le service Apache...**
 
-- affichez le contenu du fichier `httpd.service` qui contient la définition du service Apache
+```bash
+ See httpd.service(8) for more information on using the httpd service.
+
+# Modifying this file in-place is not recommended, because changes
+# will be overwritten during package upgrades.  To customize the
+# behaviour, run "systemctl edit httpd" to create an override unit.
+
+# For example, to pass additional options (such as -D definitions) to
+# the httpd binary at startup, create an override unit (as is done by
+# systemctl edit) and enter the following:
+
+#       [Service]
+#       Environment=OPTIONS=-DMY_DEFINE
+
+[Unit]
+Description=The Apache HTTP Server
+Wants=httpd-init.service
+After=network.target remote-fs.target nss-lookup.target httpd-init.service
+Documentation=man:httpd.service(8)
+
+[Service]
+Type=notify
+Environment=LANG=C
+
+ExecStart=/usr/sbin/httpd $OPTIONS -DFOREGROUND
+ExecReload=/usr/sbin/httpd $OPTIONS -k graceful
+# Send SIGWINCH for graceful stop
+KillSignal=SIGWINCH
+KillMode=mixed
+PrivateTmp=true
+OOMPolicy=continue
+
+[Install]
+WantedBy=multi-user.target
+```
 
 🌞 **Déterminer sous quel utilisateur tourne le processus Apache**
 
-- mettez en évidence la ligne dans le fichier de conf principal d'Apache (`httpd.conf`) qui définit quel user est utilisé
-- utilisez la commande `ps -ef` pour visualiser les processus en cours d'exécution et confirmer que apache tourne bien sous l'utilisateur mentionné dans le fichier de conf
-- la page d'accueil d'Apache se trouve dans `/usr/share/testpage/`
-  - vérifiez avec un `ls -al` que tout son contenu est **accessible en lecture** à l'utilisateur mentionné dans le fichier de conf
+```bash
+User apache
+Group apache
+```
+```bash
+apache       794     775  0 14:13 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+apache       795     775  0 14:13 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+apache       796     775  0 14:13 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+apache       797     775  0 14:13 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+```
+```bash
+-rw-r--r--.  1 root root 7620 Jul  6 04:37 index.html
+```
 
 🌞 **Changer l'utilisateur utilisé par Apache**
 
-- créez un nouvel utilisateur
-  - pour les options de création, inspirez-vous de l'utilisateur Apache existant
-    - le fichier `/etc/passwd` contient les informations relatives aux utilisateurs existants sur la machine
-    - servez-vous en pour voir la config actuelle de l'utilisateur Apache par défaut
-- modifiez la configuration d'Apache pour qu'il utilise ce nouvel utilisateur
-- redémarrez Apache
-- utilisez une commande `ps` pour vérifier que le changement a pris effet
+```bash
+[theo@web ~]$ ps -ef | grep http
+web          710       1  0 14:13 ?        00:00:01 /usr/bin/python3 -m http.server 8888
+root        1343       1  0 16:11 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+newApac+    1344    1343  0 16:11 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+newApac+    1345    1343  0 16:11 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+newApac+    1346    1343  0 16:11 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+newApac+    1347    1343  0 16:11 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+```
 
 🌞 **Faites en sorte que Apache tourne sur un autre port**
 
-- modifiez la configuration d'Apache pour lui demander d'écouter sur un autre port de votre choix
-- ouvrez ce nouveau port dans le firewall, et fermez l'ancien
-- redémarrez Apache
-- prouvez avec une commande `ss` que Apache tourne bien sur le nouveau port choisi
-- vérifiez avec `curl` en local que vous pouvez joindre Apache sur le nouveau port
-- vérifiez avec votre navigateur que vous pouvez joindre le serveur sur le nouveau port
+```bash
+[theo@web httpd]$ sudo ss -altmp | grep 81
+LISTEN 0      511                *:81                   *:*    users:(("httpd",pid=1606,fd=4),("httpd",pid=1605,fd=4),("httpd",pid=1604,fd=4),("httpd",pid=1602,fd=4))
+```
+```bash
+[theo@web httpd]$ curl 10.102.1.11:81
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>HTTP Server Test Page powered by: Rocky Linux</title>
+    <style type="text/css">
+      /*<![CDATA[*/
+
+      html {
+        height: 100%;
+        width: 100%;
+      }
+        body {
+...          
+```
 
 📁 **Fichier `/etc/httpd/conf/httpd.conf`**
 
