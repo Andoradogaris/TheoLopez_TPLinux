@@ -101,12 +101,24 @@ On a le meilleur des deux mondes : simplicité (un seul fichier lu au démarrage
 
 🌞 **Démarrer le service Apache**
 
-- le service s'appelle `httpd` (raccourci pour `httpd.service` en réalité)
-  - démarrez le
-  - faites en sorte qu'Apache démarre automatique au démarrage de la machine
-  - ouvrez le port firewall nécessaire
-    - utiliser une commande `ss` pour savoir sur quel port tourne actuellement Apache
-    - une portion du mémo commandes est dédiée à `ss`
+```bash
+[theo@web conf]$ sudo systemctl start httpd
+```
+```bash
+[theo@web conf]$ sudo systemctl enable httpd
+Created symlink /etc/systemd/system/multi-user.target.wants/httpd.service → /usr/lib/systemd/system/httpd.service.
+```
+```bash
+[theo@web conf]$ ss -alpnt
+State       Recv-Q      Send-Q           Local Address:Port           Peer Address:Port     Process
+LISTEN      0           128                    0.0.0.0:22                  0.0.0.0:*
+LISTEN      0           5                      0.0.0.0:8888                0.0.0.0:*
+LISTEN      0           511                          *:80                        *:*
+```
+```bash
+sudo firewall-cmd --add-port=80/tcp --permanent
+success
+```
 
 **En cas de problème** (IN CASE OF FIIIIRE) vous pouvez check les logs d'Apache :
 
@@ -123,9 +135,40 @@ $ sudo cat /var/log/httpd/access_log
 
 🌞 **TEST**
 
-- vérifier que le service est démarré
-- vérifier qu'il est configuré pour démarrer automatiquement
-- vérifier avec une commande `curl localhost` que vous joignez votre serveur web localement
+```bash
+[theo@web conf]$ curl localhost
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>HTTP Server Test Page powered by: Rocky Linux</title>
+    <style type="text/css">
+      /*<![CDATA[*/
+
+      html {
+        height: 100%;
+        width: 100%;
+      }
+        body {
+  background: rgb(20,72,50);
+  background: -moz-linear-gradient(180deg, rgba(23,43,70,1) 30%, rgba(0,0,0,1) 90%)  ;
+  background: -webkit-linear-gradient(180deg, rgba(23,43,70,1) 30%, rgba(0,0,0,1) 90%) ;
+  background: linear-gradient(180deg, rgba(23,43,70,1) 30%, rgba(0,0,0,1) 90%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#3c6eb4",endColorstr="#3c95b4",GradientType=1);
+        color: white;
+        font-size: 0.9em;
+        font-weight: 400;
+        font-family: 'Montserrat', sans-serif;
+        margin: 0;
+        padding: 10em 6em 10em 6em;
+        box-sizing: border-box;
+
+      }
+...
+```
 - vérifier avec votre navigateur (sur votre PC) que vous accéder à votre serveur web
 
 ## 2. Avancer vers la maîtrise du service
